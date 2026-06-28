@@ -94,12 +94,23 @@ body {
   line-height: 1.65;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  animation: page-fade-in 0.7s ease;
+}
+
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 img {
   max-width: 100%;
   display: block;
   height: auto;
+}
+
+section[id],
+#top {
+  scroll-margin-top: var(--header-height);
 }
 
 ul,
@@ -266,8 +277,8 @@ textarea:focus-visible {
 
 .btn--primary:hover {
   background-color: var(--color-gold-light);
-  transform: translateY(-2px);
-  box-shadow: 0 18px 36px rgba(184, 146, 61, 0.36);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 42px rgba(184, 146, 61, 0.4), 0 0 0 1px rgba(216, 186, 114, 0.45);
 }
 
 .btn--primary:active {
@@ -284,7 +295,8 @@ textarea:focus-visible {
   background-color: rgba(243, 237, 224, 0.1);
   border-color: var(--color-gold-light);
   color: var(--color-gold-light);
-  transform: translateY(-2px);
+  transform: translateY(-3px);
+  box-shadow: 0 14px 30px rgba(184, 146, 61, 0.18);
 }
 
 /* Outline button used on light backgrounds (e.g. featured dishes footer) */
@@ -324,6 +336,29 @@ textarea:focus-visible {
 }
 
 /* ---------------------------------------------------------------------
+   5b. SCROLL-REVEAL ANIMATIONS
+   Applied via script.js (IntersectionObserver toggles .is-visible).
+   Uses only transform + opacity so reveals never trigger layout shift.
+   --------------------------------------------------------------------- */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1);
+  will-change: opacity, transform;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal--delay-0 { transition-delay: 0ms; }
+.reveal--delay-1 { transition-delay: 80ms; }
+.reveal--delay-2 { transition-delay: 160ms; }
+.reveal--delay-3 { transition-delay: 240ms; }
+
+/* ---------------------------------------------------------------------
    6. STICKY NAVIGATION / HEADER
    --------------------------------------------------------------------- */
 .site-header {
@@ -334,6 +369,18 @@ textarea:focus-visible {
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
   box-shadow: 0 1px 0 rgba(243, 237, 224, 0.08);
+  transition: box-shadow var(--transition-base), background-color var(--transition-base);
+  animation: nav-slide-down 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.site-header.is-scrolled {
+  background-color: rgba(27, 27, 24, 0.98);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+}
+
+@keyframes nav-slide-down {
+  from { opacity: 0; transform: translateY(-100%); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .site-header__inner {
@@ -521,25 +568,33 @@ textarea:focus-visible {
 
 .hero__media {
   position: absolute;
-  inset: 0;
+  top: -6%;
+  right: 0;
+  bottom: -6%;
+  left: 0;
   z-index: -1;
+  will-change: transform;
 }
 
 .hero__image {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  animation: hero-zoom 26s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+@keyframes hero-zoom {
+  from { transform: scale(1); }
+  to { transform: scale(1.1); }
 }
 
 .hero__overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(27, 27, 24, 0.55) 0%,
-    rgba(27, 27, 24, 0.45) 40%,
-    rgba(27, 27, 24, 0.92) 100%
-  );
+  background:
+    linear-gradient(180deg, rgba(27, 27, 24, 0.4) 0%, rgba(27, 27, 24, 0.3) 38%, rgba(27, 27, 24, 0.94) 100%),
+    radial-gradient(120% 90% at 50% 100%, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 60%);
 }
 
 .hero__content {
@@ -551,6 +606,8 @@ textarea:focus-visible {
 
 .hero__eyebrow {
   color: var(--color-gold-light);
+  animation: hero-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.2s;
 }
 
 .hero__heading {
@@ -558,6 +615,8 @@ textarea:focus-visible {
   font-size: clamp(2.25rem, 6vw, 4rem);
   color: var(--color-white);
   margin-bottom: var(--space-sm);
+  animation: hero-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.35s;
 }
 
 .hero__subtitle {
@@ -565,12 +624,21 @@ textarea:focus-visible {
   font-size: 1.125rem;
   color: var(--color-text-on-dark-muted);
   margin-bottom: var(--space-lg);
+  animation: hero-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.5s;
 }
 
 .hero__actions {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-sm);
+  animation: hero-fade-up 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.65s;
+}
+
+@keyframes hero-fade-up {
+  from { opacity: 0; transform: translateY(26px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (min-width: 768px) {
@@ -692,6 +760,11 @@ textarea:focus-visible {
   height: 100%;
   object-fit: cover;
   aspect-ratio: 4 / 5;
+  transition: transform var(--transition-slow);
+}
+
+.about__media:hover .about__image {
+  transform: scale(1.05);
 }
 
 .about__text {
@@ -947,6 +1020,24 @@ textarea:focus-visible {
   width: 100%;
 }
 
+.reservation-form__status {
+  margin-top: var(--space-sm);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--color-gold-dark);
+  text-align: center;
+  opacity: 0;
+  max-height: 0;
+  overflow: hidden;
+  transition: opacity var(--transition-base), max-height var(--transition-base);
+}
+
+.reservation-form__status.is-visible {
+  opacity: 1;
+  max-height: 80px;
+  margin-top: 1rem;
+}
+
 @media (min-width: 640px) {
   .form-row {
     grid-template-columns: repeat(2, 1fr);
@@ -1113,6 +1204,25 @@ textarea:focus-visible {
   color: var(--color-gold-light);
 }
 
+.contact__exterior {
+  margin: 0 0 var(--space-sm);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--color-border-dark);
+}
+
+.contact__exterior-image {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  transition: transform var(--transition-slow);
+}
+
+.contact__exterior:hover .contact__exterior-image {
+  transform: scale(1.06);
+}
+
 .contact__map .map-frame {
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1209,6 +1319,7 @@ textarea:focus-visible {
 
 .site-footer__bottom {
   border-top: 1px solid var(--color-border-dark);
+  background: linear-gradient(180deg, rgba(184, 146, 61, 0.05), transparent 60%);
 }
 
 .site-footer__copyright {
@@ -1244,9 +1355,65 @@ textarea:focus-visible {
   transition: transform var(--transition-base), box-shadow var(--transition-base);
 }
 
+.whatsapp-float::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background-color: rgba(37, 211, 102, 0.5);
+  z-index: -1;
+  animation: whatsapp-pulse 2.8s ease-out infinite;
+}
+
+@keyframes whatsapp-pulse {
+  0% { transform: scale(1); opacity: 0.55; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
 .whatsapp-float:hover {
   transform: translateY(-4px) scale(1.05);
   box-shadow: 0 20px 40px rgba(37, 211, 102, 0.4);
+}
+
+/* ---------------------------------------------------------------------
+   16b. BACK-TO-TOP BUTTON
+   --------------------------------------------------------------------- */
+.back-to-top {
+  position: fixed;
+  left: var(--space-md);
+  bottom: var(--space-md);
+  z-index: 90;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 1px solid var(--color-border-dark);
+  background-color: var(--color-charcoal);
+  color: var(--color-gold-light);
+  box-shadow: var(--shadow-lg);
+  opacity: 0;
+  transform: translateY(16px) scale(0.85);
+  pointer-events: none;
+  transition: opacity var(--transition-base), transform var(--transition-base),
+    background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.back-to-top.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.back-to-top:hover {
+  background-color: var(--color-gold);
+  color: var(--color-charcoal);
+  transform: translateY(-4px) scale(1.05);
+}
+
+.back-to-top:active {
+  transform: translateY(-1px) scale(0.97);
 }
 
 /* ---------------------------------------------------------------------
