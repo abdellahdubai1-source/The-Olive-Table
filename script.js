@@ -9,15 +9,6 @@
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
 
-  /* -------------------------------------------------------------------
-     0. PROGRESSIVE ENHANCEMENT FLAG
-     If the page (or a future version of it) sets a "no-js" class on
-     <body> as a CSS fallback hook, remove it now that JS is running.
-     classList.remove() is a no-op if the class isn't present, so this
-     is always safe to call.
-     ------------------------------------------------------------------- */
-  document.body.classList.remove('no-js');
-
   /* =====================================================================
      SHARED REFERENCES
      ===================================================================== */
@@ -26,6 +17,8 @@ document.addEventListener('DOMContentLoaded', function () {
   var primaryNav = document.querySelector('.primary-nav');
   var navLinks = document.querySelectorAll('.primary-nav__link');
   var headerHeight = header ? header.offsetHeight : 0;
+  var heroSection = document.getElementById('home');
+  var heroMedia = document.querySelector('.hero__media');
   var prefersReducedMotion = window.matchMedia(
     '(prefers-reduced-motion: reduce)'
   ).matches;
@@ -97,6 +90,8 @@ document.addEventListener('DOMContentLoaded', function () {
      2. STICKY HEADER SCROLL EFFECT
      Adds visual weight to the header (deeper shadow, more opaque
      background) once the page has scrolled past a small threshold.
+     The actual styling lives in CSS (.site-header.is-scrolled) so this
+     stays a simple, lightweight class toggle.
      ===================================================================== */
   var SCROLL_THRESHOLD = 24;
   var headerIsCondensed = false;
@@ -108,17 +103,27 @@ document.addEventListener('DOMContentLoaded', function () {
 
     if (shouldCondense !== headerIsCondensed) {
       headerIsCondensed = shouldCondense;
-
-      if (headerIsCondensed) {
-        header.classList.add('is-scrolled');
-        header.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.28)';
-        header.style.backgroundColor = 'rgba(27, 27, 24, 0.98)';
-      } else {
-        header.classList.remove('is-scrolled');
-        header.style.boxShadow = '';
-        header.style.backgroundColor = '';
-      }
+      header.classList.toggle('is-scrolled', headerIsCondensed);
     }
+  }
+
+  /* =====================================================================
+     2b. HERO PARALLAX
+     A subtle, scroll-linked drift on the hero background layer.
+     Runs alongside the CSS-driven slow-zoom keyframe on the image itself
+     (different element, so the two transforms never collide). Limited
+     to a small offset and only while the hero is in view, for
+     performance and to respect reduced-motion preferences.
+     ===================================================================== */
+  var HERO_PARALLAX_STRENGTH = 0.12;
+  var HERO_PARALLAX_MAX = 60;
+
+  function updateHeroParallax() {
+    if (!heroSection || !heroMedia || prefersReducedMotion) return;
+    var rect = heroSection.getBoundingClientRect();
+    if (rect.bottom < 0 || rect.top > window.innerHeight) return;
+    var offset = Math.min(window.scrollY * HERO_PARALLAX_STRENGTH, HERO_PARALLAX_MAX);
+    heroMedia.style.transform = 'translate3d(0, ' + offset + 'px, 0)';
   }
 
   function onScroll() {
@@ -126,6 +131,7 @@ document.addEventListener('DOMContentLoaded', function () {
       window.requestAnimationFrame(function () {
         applyHeaderState();
         updateBackToTopVisibility();
+        updateHeroParallax();
         scrollTicking = false;
       });
       scrollTicking = true;
@@ -134,6 +140,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   window.addEventListener('scroll', onScroll, { passive: true });
   applyHeaderState();
+  updateHeroParallax();
 
   /* Keep header height in sync if it changes on resize (e.g. orientation) */
   window.addEventListener('resize', function () {
@@ -240,7 +247,10 @@ document.addEventListener('DOMContentLoaded', function () {
   /* =====================================================================
      5. REVEAL-ON-SCROLL ANIMATIONS
      Elements fade and lift gently into view as they enter the viewport.
-     Skipped entirely when the visitor prefers reduced motion.
+     The animation itself (.reveal / .reveal.is-visible) lives in CSS;
+     this just adds the classes and toggles visibility via
+     IntersectionObserver. Skipped entirely when the visitor prefers
+     reduced motion, in which case elements simply render normally.
      ===================================================================== */
   if (!prefersReducedMotion && 'IntersectionObserver' in window) {
     var revealSelectors = [
@@ -259,11 +269,7 @@ document.addEventListener('DOMContentLoaded', function () {
     var revealElements = document.querySelectorAll(revealSelectors.join(','));
 
     revealElements.forEach(function (element, index) {
-      element.style.opacity = '0';
-      element.style.transform = 'translateY(28px)';
-      element.style.transition =
-        'opacity 0.7s ease, transform 0.7s ease';
-      element.style.transitionDelay = (index % 4) * 80 + 'ms';
+      element.classList.add('reveal', 'reveal--delay-' + (index % 4));
     });
 
     var revealObserver = new IntersectionObserver(
@@ -271,8 +277,6 @@ document.addEventListener('DOMContentLoaded', function () {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) return;
 
-          entry.target.style.opacity = '1';
-          entry.target.style.transform = 'translateY(0)';
           entry.target.classList.add('is-visible');
           observer.unobserve(entry.target);
         });
@@ -371,19 +375,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     /* Builds a small, reusable status message under the form */
     var statusMessage = document.createElement('p');
+    statusMessage.className = 'reservation-form__status';
     statusMessage.setAttribute('role', 'status');
     statusMessage.setAttribute('aria-live', 'polite');
-    statusMessage.style.marginTop = '1rem';
-    statusMessage.style.fontSize = '0.9375rem';
-    statusMessage.style.fontWeight = '600';
-    statusMessage.style.color = 'var(--color-gold-dark, #8C6E2C)';
-    statusMessage.style.textAlign = 'center';
-    statusMessage.style.display = 'none';
     reservationForm.appendChild(statusMessage);
 
     function showStatusMessage(text) {
       statusMessage.textContent = text;
-      statusMessage.style.display = 'block';
+      statusMessage.classList.add('is-visible');
     }
 
     reservationForm.addEventListener('submit', function (event) {
@@ -437,8 +436,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
   /* =====================================================================
      7. BACK-TO-TOP BUTTON
-     Created dynamically (the markup defines no button for this), styled
-     inline using the same design tokens already declared in style.css.
+     Created dynamically (the markup defines no button for this). All
+     visual styling — including the fade + scale reveal — lives in CSS
+     under .back-to-top / .back-to-top.is-visible; this just creates the
+     element, wires the click handler, and toggles the visibility class.
      ===================================================================== */
   var backToTopButton = document.createElement('button');
   backToTopButton.type = 'button';
@@ -451,36 +452,6 @@ document.addEventListener('DOMContentLoaded', function () {
     'stroke="currentColor" stroke-width="2" stroke-linecap="round" ' +
     'stroke-linejoin="round"/></svg>';
 
-  backToTopButton.style.position = 'fixed';
-  backToTopButton.style.left = '1.5rem';
-  backToTopButton.style.bottom = '1.5rem';
-  backToTopButton.style.zIndex = '90';
-  backToTopButton.style.display = 'inline-flex';
-  backToTopButton.style.alignItems = 'center';
-  backToTopButton.style.justifyContent = 'center';
-  backToTopButton.style.width = '48px';
-  backToTopButton.style.height = '48px';
-  backToTopButton.style.borderRadius = '50%';
-  backToTopButton.style.border = '1px solid var(--color-border-dark, #3A392F)';
-  backToTopButton.style.backgroundColor = 'var(--color-charcoal, #1B1B18)';
-  backToTopButton.style.color = 'var(--color-gold-light, #D8BA72)';
-  backToTopButton.style.boxShadow = 'var(--shadow-lg, 0 24px 60px rgba(0,0,0,0.2))';
-  backToTopButton.style.opacity = '0';
-  backToTopButton.style.transform = 'translateY(12px)';
-  backToTopButton.style.pointerEvents = 'none';
-  backToTopButton.style.transition =
-    'opacity 0.3s ease, transform 0.3s ease, background-color 0.3s ease';
-
-  backToTopButton.addEventListener('mouseenter', function () {
-    backToTopButton.style.backgroundColor = 'var(--color-gold, #B8923D)';
-    backToTopButton.style.color = 'var(--color-charcoal, #1B1B18)';
-  });
-
-  backToTopButton.addEventListener('mouseleave', function () {
-    backToTopButton.style.backgroundColor = 'var(--color-charcoal, #1B1B18)';
-    backToTopButton.style.color = 'var(--color-gold-light, #D8BA72)';
-  });
-
   backToTopButton.addEventListener('click', function () {
     window.scrollTo({ top: 0, behavior: prefersReducedMotion ? 'auto' : 'smooth' });
   });
@@ -488,19 +459,9 @@ document.addEventListener('DOMContentLoaded', function () {
   document.body.appendChild(backToTopButton);
 
   var BACK_TO_TOP_THRESHOLD = window.innerHeight * 0.6;
-  var backToTopVisible = false;
 
   function updateBackToTopVisibility() {
-    var shouldShow = window.scrollY > BACK_TO_TOP_THRESHOLD;
-
-    if (shouldShow !== backToTopVisible) {
-      backToTopVisible = shouldShow;
-      backToTopButton.style.opacity = backToTopVisible ? '1' : '0';
-      backToTopButton.style.transform = backToTopVisible
-        ? 'translateY(0)'
-        : 'translateY(12px)';
-      backToTopButton.style.pointerEvents = backToTopVisible ? 'auto' : 'none';
-    }
+    backToTopButton.classList.toggle('is-visible', window.scrollY > BACK_TO_TOP_THRESHOLD);
   }
 
   updateBackToTopVisibility();
